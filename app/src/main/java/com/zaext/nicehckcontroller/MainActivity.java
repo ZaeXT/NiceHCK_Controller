@@ -3,7 +3,6 @@ package com.zaext.nicehckcontroller; // 确保这里的包名和你自己的一�
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,23 +14,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Set;
-import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "NiceHCK_Control";
     private static final int PERMISSION_REQUEST_CODE = 101;
-    // 这是 SPP 的标准 UUID
-    private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private BluetoothAdapter bluetoothAdapter;
-    private BluetoothSocket bluetoothSocket;
-    private OutputStream outputStream;
+    private BluetoothController bluetoothController; // 使用单例控制器
 
     private Spinner spinnerDevices;
     private TextView textStatus;
@@ -44,8 +36,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 初始化 UI 控件
         spinnerDevices = findViewById(R.id.spinner_devices);
         textStatus = findViewById(R.id.text_status);
+
+        // 初始化蓝牙控制器单例
+        bluetoothController = BluetoothController.getInstance(this);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
@@ -67,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
                 listPairedDevices();
             }
         } else {
-            // Android 11 及以下，权限在安装时授予
             listPairedDevices();
         }
     }
@@ -84,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // --- 蓝牙逻辑 ---
+    // --- 查找已配对设备 ---
     private void listPairedDevices() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return; // 权限检查
@@ -105,106 +100,111 @@ public class MainActivity extends AppCompatActivity {
         spinnerDevices.setAdapter(adapter);
     }
 
+    // --- 连接逻辑 (已简化，全部委托给 Controller) ---
     public void connectDevice(View view) {
-        int selectedPosition = spinnerDevices.getSelectedItemPosition();
-        if (selectedPosition < 0 || selectedPosition >= pairedDevicesList.size()) {
-            Toast.makeText(this, "请先选择一个设备", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        BluetoothDevice device = pairedDevicesList.get(selectedPosition);
-        textStatus.setText("状态：正在连接...");
-
+        // MainActivity 不再处理连接细节，只负责触发
         new Thread(() -> {
-            try {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-                bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID);
-                bluetoothSocket.connect();
-                outputStream = bluetoothSocket.getOutputStream();
-                runOnUiThread(() -> textStatus.setText("状态：已连接到 " + device.getName()));
-            } catch (IOException e) {
-                // 打印详细错误到 Logcat
-                Log.e("BluetoothConnect", "连接失败: " + e.getMessage());
-                e.printStackTrace();
-                runOnUiThread(() -> {
+            boolean isConnected = bluetoothController.connectDefaultDevice();
+            runOnUiThread(() -> {
+                if (isConnected) {
+                    textStatus.setText("状态：已连接");
+                    textStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+                } else {
                     textStatus.setText("状态：连接失败");
-                    Toast.makeText(MainActivity.this, "连接失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-                try {
-                    if (bluetoothSocket != null) {
-                        bluetoothSocket.close();
-                    }
-                } catch (IOException closeException) {
-                    closeException.printStackTrace();
                 }
-            }
+            });
         }).start();
     }
 
-    // --- 核心指令发送 ---
-    private void sendCommand(byte[] payload) {
-        if (outputStream == null) {
-            Toast.makeText(this, "请先连接耳机", Toast.LENGTH_SHORT).show();
+    // ==========================================
+    // ============ 功能指令区 (调用 Controller) =======
+    // ==========================================
+
+    private void sendCommand(byte[] packet) {
+        if (!bluetoothController.isConnected()) {
+            Toast.makeText(this, "耳机未连接，请先连接", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        try {
-            byte type = (byte) 0x85; // DATA channel
-            int length = payload.length;
-
-            ByteBuffer buffer = ByteBuffer.allocate(5 + length);
-            buffer.order(ByteOrder.LITTLE_ENDIAN); // 小端序
-
-            buffer.put(type);
-            buffer.putInt(length);
-            buffer.put(payload);
-
-            byte[] packet = buffer.array();
-
-            outputStream.write(packet);
-            outputStream.flush();
-            Toast.makeText(this, "指令已发送", Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "发送失败", Toast.LENGTH_SHORT).show();
-        }
+        bluetoothController.sendRaw(packet);
+        Toast.makeText(this, "指令已发送", Toast.LENGTH_SHORT).show();
     }
 
-    // --- 按钮点击事件 ---
-    public void setAncDeep(View view) {
-        sendCommand(new byte[]{(byte) 0xFF, 0x03, (byte) 1});
+    // --- 降噪控制 ---
+    public void setAncOff(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00});
+    }
+    public void setAncTransparency(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x01, 0x00});
+    }
+    public void setAncNormal(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x02, 0x00});
+    }
+    public void setAncDeep(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00});
+    }
+    public void setAncExperimental(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x10, 0x00});
+    }
+    public void setAncWind(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x11, 0x00});
     }
 
-    public void setAncTransparency(View view) {
-        sendCommand(new byte[]{(byte) 0xFF, 0x03, (byte) 2});
+    // --- EQ 控制 ---
+    public void setEqBlue(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x00});
+    }
+    public void setEqBalanced(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x01});
+    }
+    public void setEqBass(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x02});
+    }
+    public void setEqPure(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x03});
+    }
+    public void setEqGame(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x04});
     }
 
-    public void setAncOff(View view) {
-        sendCommand(new byte[]{(byte) 0xFF, 0x03, (byte) 0});
+    // --- 高级功能 ---
+    public void setGameModeOn(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x08, 0x02, 0x01});
     }
-
-    public void setGameModeOn(View view) {
-        sendCommand(new byte[]{(byte) 0xFF, 0x06, (byte) 1});
+    public void setGameModeOff(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x08, 0x02, 0x00});
     }
-
-    public void setGameModeOff(View view) {
-        sendCommand(new byte[]{(byte) 0xFF, 0x06, (byte) 0});
+    public void setLowLatencyOn(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x06, 0x02, 0x01});
+    }
+    public void setLowLatencyOff(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x06, 0x02, 0x00});
+    }
+    public void setDualConnOn(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x05, 0x02, 0x01});
+    }
+    public void setDualConnOff(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x05, 0x02, 0x00});
+    }
+    public void setCodecLHDC(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x04, 0x02, 0x01});
+    }
+    public void setCodecAAC(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x04, 0x02, 0x00});
+    }
+    public void setAntiWindOn(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, (byte)0xE1, 0x02, 0x01});
+    }
+    public void setAntiWindOff(View v) {
+        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, (byte)0xE1, 0x02, 0x00});
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        try {
-            if (outputStream != null) {
-                outputStream.close();
-            }
-            if (bluetoothSocket != null) {
-                bluetoothSocket.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        // 当 App 退出时，可以选择断开连接
+        // 如果想让磁贴在后台也能用，可以把这行注释掉
+        if (bluetoothController != null) {
+            bluetoothController.close();
         }
     }
 }

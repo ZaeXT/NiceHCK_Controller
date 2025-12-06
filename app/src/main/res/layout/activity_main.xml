@@ -1,75 +1,146 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:gravity="center_horizontal"
-    tools:context=".MainActivity">
+    android:layout_height="match_parent">
 
-    <Spinner
-        android:id="@+id/spinner_devices"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"/>
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:gravity="center_horizontal">
 
-    <Button
-        android:id="@+id/button_connect"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="连接耳机"
-        android:onClick="connectDevice"/>
+        <!-- 连接区域 -->
+        <TextView
+            android:text="设备连接"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
 
-    <TextView
-        android:id="@+id/text_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="状态：未连接"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="24dp"/>
+        <Spinner
+            android:id="@+id/spinner_devices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="降噪控制"
-        android:textStyle="bold"/>
+        <Button
+            android:text="连接耳机"
+            android:onClick="connectDevice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="深度降噪"
-        android:onClick="setAncDeep"/>
+        <TextView
+            android:id="@+id/text_status"
+            android:text="状态：未连接"
+            android:textColor="#FF0000"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="通透模式"
-        android:onClick="setAncTransparency"/>
+        <!-- 降噪控制 -->
+        <TextView
+            android:text="降噪模式 (ANC)"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="关闭降噪"
-        android:onClick="setAncOff"/>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+            <Button android:text="关闭" android:onClick="setAncOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="通透" android:onClick="setAncTransparency" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="降噪(普)" android:onClick="setAncNormal" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+            <Button android:text="降噪(深)" android:onClick="setAncDeep" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="试验性" android:onClick="setAncExperimental" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="抗风噪" android:onClick="setAncWind" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="游戏模式"
-        android:textStyle="bold"/>
+        <!-- EQ 控制 (修改：使用 GridLayout 替代 WrapLayout) -->
+        <TextView
+            android:text="EQ 音效"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="开启游戏模式"
-        android:onClick="setGameModeOn"/>
+        <GridLayout
+            android:columnCount="3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center">
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="关闭游戏模式"
-        android:onClick="setGameModeOff"/>
+            <Button android:text="悔恨之泪" android:onClick="setEqBlue"/>
+            <Button android:text="均衡中正" android:onClick="setEqBalanced"/>
+            <Button android:text="欧美澎湃" android:onClick="setEqBass"/>
+            <Button android:text="真律还原" android:onClick="setEqPure"/>
+            <Button android:text="游戏优化" android:onClick="setEqGame"/>
+        </GridLayout>
 
-</LinearLayout>
+        <!-- 高级功能 -->
+        <TextView
+            android:text="高级功能"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="20dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+            <Button android:text="开启游戏模式" android:onClick="setGameModeOn" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="关闭游戏模式" android:onClick="setGameModeOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+            <Button android:text="开启低延迟" android:onClick="setLowLatencyOn" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="关闭低延迟" android:onClick="setLowLatencyOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+            <Button android:text="双设备: 开" android:onClick="setDualConnOn" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="双设备: 关" android:onClick="setDualConnOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+            <Button android:text="编码: LHDC" android:onClick="setCodecLHDC" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="编码: AAC" android:onClick="setCodecAAC" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+            <Button android:text="抗风噪开关: 开" android:onClick="setAntiWindOn" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <Button android:text="抗风噪开关: 关" android:onClick="setAntiWindOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

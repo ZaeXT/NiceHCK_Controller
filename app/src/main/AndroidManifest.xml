@@ -41,6 +41,32 @@
             </intent-filter>
         </activity>
 
+        <!-- 游戏模式磁贴 -->
+        <service
+            android:name=".GameModeTile"
+            android:icon="@mipmap/ic_launcher"
+            android:label="NiceHCK 游戏模式"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true"
+            tools:targetApi="24">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- 降噪磁贴 -->
+        <service
+            android:name=".AncTile"
+            android:icon="@mipmap/ic_launcher"
+            android:label="NiceHCK 降噪"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true"
+            tools:targetApi="24">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>
