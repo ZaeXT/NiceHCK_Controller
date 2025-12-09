@@ -35,9 +35,45 @@
             android:text="状态：未连接"
             android:textColor="#FF0000"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="20dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
+
+        <!-- 设备状态显示 -->
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="#F0F0F0">
+
+            <TextView
+                android:id="@+id/text_battery"
+                android:text="电量: 查询中..."
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/text_anc_mode"
+                android:text="ANC模式: 查询中..."
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:layout_marginTop="4dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <Button
+                android:id="@+id/btn_refresh_status"
+                android:text="刷新状态"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:padding="8dp"/>
+
+        </LinearLayout>
 
         <!-- 降噪控制 -->
         <TextView
@@ -52,7 +88,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center">
-            <Button android:text="关闭" android:onClick="setAncOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:onClick="setAncOff"
+                android:text="关闭" />
             <Button android:text="通透" android:onClick="setAncTransparency" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
             <Button android:text="降噪(普)" android:onClick="setAncNormal" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
         </LinearLayout>

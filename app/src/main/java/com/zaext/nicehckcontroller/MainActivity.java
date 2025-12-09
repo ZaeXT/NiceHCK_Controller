@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,6 +28,9 @@ public class MainActivity extends AppCompatActivity {
 
     private Spinner spinnerDevices;
     private TextView textStatus;
+    private TextView textBattery;
+    private TextView textAncMode;
+    private Button btnRefreshStatus;
 
     private ArrayList<BluetoothDevice> pairedDevicesList = new ArrayList<>();
     private ArrayList<String> pairedDeviceNames = new ArrayList<>();
@@ -39,9 +43,18 @@ public class MainActivity extends AppCompatActivity {
         // 初始化 UI 控件
         spinnerDevices = findViewById(R.id.spinner_devices);
         textStatus = findViewById(R.id.text_status);
+        textBattery = findViewById(R.id.text_battery);
+        textAncMode = findViewById(R.id.text_anc_mode);
+        btnRefreshStatus = findViewById(R.id.btn_refresh_status);
 
         // 初始化蓝牙控制器单例
         bluetoothController = BluetoothController.getInstance(this);
+
+        // 设置状态监听器
+        setupStateListener();
+
+        // 设置刷新按钮点击事件
+        btnRefreshStatus.setOnClickListener(v -> refreshDeviceStatus());
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
@@ -51,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         checkAndRequestPermissions();
+
+        // TODO 自动连接默认设备
     }
 
     // --- 权限处理 ---
@@ -109,11 +124,80 @@ public class MainActivity extends AppCompatActivity {
                 if (isConnected) {
                     textStatus.setText("状态：已连接");
                     textStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+
+                    // 连接成功后自动查询状态
+                    refreshDeviceStatus();
                 } else {
                     textStatus.setText("状态：连接失败");
                 }
             });
         }).start();
+    }
+
+    // ==========================================
+    // ============ 状态管理 ===================
+    // ==========================================
+
+    /**
+     * 设置状态监听器
+     */
+    private void setupStateListener() {
+        bluetoothController.setStateListener(new BluetoothController.StateListener() {
+            @Override
+            public void onBatteryChanged(int left, int right) {
+                runOnUiThread(() -> updateBatteryUI(left, right));
+            }
+
+            @Override
+            public void onAncModeChanged(int mode) {
+                runOnUiThread(() -> updateAncModeUI(mode));
+            }
+        });
+    }
+
+    /**
+     * 刷新设备状态（查询电量和ANC模式）
+     */
+    private void refreshDeviceStatus() {
+        if (!bluetoothController.isConnected()) {
+            Toast.makeText(this, "设备未连接", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 查询电量
+        bluetoothController.queryBattery();
+
+        // 延迟100ms后查询ANC模式，避免指令冲突
+        new android.os.Handler().postDelayed(() -> {
+            bluetoothController.queryAncMode();
+        }, 100);
+    }
+
+    /**
+     * 更新电量显示
+     */
+    private void updateBatteryUI(int left, int right) {
+        if (left >= 0 && right >= 0) {
+            textBattery.setText("电量: 左 " + left + "% | 右 " + right + "%");
+            textBattery.setTextColor(getResources().getColor(android.R.color.black));
+        } else {
+            textBattery.setText("电量: 未知");
+            textBattery.setTextColor(getResources().getColor(android.R.color.darker_gray));
+        }
+    }
+
+    /**
+     * 更新ANC模式显示
+     */
+    private void updateAncModeUI(int mode) {
+        String modeName = bluetoothController.getAncModeName();
+        if (mode >= 0) {
+            textAncMode.setText("ANC模式: " + modeName);
+            textAncMode.setTextColor(getResources().getColor(android.R.color.black));
+        } else {
+            textAncMode.setText("ANC模式: 未知");
+            textAncMode.setTextColor(getResources().getColor(android.R.color.darker_gray));
+        }
     }
 
     // ==========================================
@@ -132,21 +216,27 @@ public class MainActivity extends AppCompatActivity {
     // --- 降噪控制 ---
     public void setAncOff(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00});
+        sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
     public void setAncTransparency(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x01, 0x00});
+        sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
     public void setAncNormal(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x02, 0x00});
+        sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
     public void setAncDeep(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00});
+        sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
     public void setAncExperimental(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x10, 0x00});
+        sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
     public void setAncWind(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x11, 0x00});
+        sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
 
     // --- EQ 控制 ---

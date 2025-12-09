@@ -17,6 +17,7 @@ public class GameModeTile extends TileService {
         super.onStartListening();
         // 当下拉通知栏，磁贴可见时调用
         updateTileState();
+        // TODO 更新当前状态
     }
 
     @Override
