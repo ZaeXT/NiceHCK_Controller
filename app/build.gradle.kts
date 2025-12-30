@@ -9,7 +9,9 @@ plugins {
 
 android {
     namespace = "com.zaext.nicehckcontroller"
-    compileSdk = 36
+    compileSdk {
+        version = release(36)
+    }
 
     defaultConfig {
         applicationId = "com.zaext.nicehckcontroller"

@@ -1,4 +1,4 @@
-package com.zaext.nicehckcontroller;
+package com.zaext.nicehckcontroller; // 确保这里的包名和你自己的一致！
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
@@ -6,8 +6,8 @@ import android.bluetooth.BluetoothDevice;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
@@ -24,17 +24,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 101;
 
     private BluetoothAdapter bluetoothAdapter;
-    private BluetoothController bluetoothController;
+    private BluetoothController bluetoothController; // 使用单例控制器
 
     private Spinner spinnerDevices;
-    private Spinner spinnerAnc;
-    private Spinner spinnerEq;
-    private Spinner spinnerGameMode;
-    private Spinner spinnerLowLatency;
-    private Spinner spinnerDualConn;
-    private Spinner spinnerCodec;
-    private Spinner spinnerAntiWind;
-
     private TextView textStatus;
     private TextView textBattery;
     private TextView textAncMode;
@@ -43,20 +35,26 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<BluetoothDevice> pairedDevicesList = new ArrayList<>();
     private ArrayList<String> pairedDeviceNames = new ArrayList<>();
 
-    private boolean isInitializing = true; // 防止初始化时触发选择事件
-    private boolean isSyncingFromDevice = false; // 防止设备状态同步时触发命令
-    private AdapterView.OnItemSelectedListener ancSpinnerListener; // 保存降噪 Spinner 监听器
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // 初始化 UI 控件
+        spinnerDevices = findViewById(R.id.spinner_devices);
+        textStatus = findViewById(R.id.text_status);
+        textBattery = findViewById(R.id.text_battery);
+        textAncMode = findViewById(R.id.text_anc_mode);
+        btnRefreshStatus = findViewById(R.id.btn_refresh_status);
 
         // 初始化蓝牙控制器单例
         bluetoothController = BluetoothController.getInstance(this);
 
         // 设置状态监听器
         setupStateListener();
+
+        // 设置刷新按钮点击事件
+        btnRefreshStatus.setOnClickListener(v -> refreshDeviceStatus());
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
@@ -65,211 +63,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // 初始化 UI 控件
-        initializeViews();
-
-        // 设置所有 Spinner
-        setupSpinners();
-
-        // 初始状态下禁用所有控制 Spinner
-        enableControlSpinners(false);
-
         checkAndRequestPermissions();
 
-        // 自动连接设备
-        new Thread(() -> {
-            boolean isConnected = bluetoothController.connectDefaultDevice();
-            runOnUiThread(() -> {
-                // 连接完成后才允许触发 Spinner 事件
-                isInitializing = false;
-                updateConnectionStatus(isConnected);
-                if (isConnected) {
-                    refreshDeviceStatus();
-                }
-            });
-        }).start();
-    }
-
-    private void initializeViews() {
-        spinnerDevices = findViewById(R.id.spinner_devices);
-        spinnerAnc = findViewById(R.id.spinner_anc);
-        spinnerEq = findViewById(R.id.spinner_eq);
-        spinnerGameMode = findViewById(R.id.spinner_game_mode);
-        spinnerLowLatency = findViewById(R.id.spinner_low_latency);
-        spinnerDualConn = findViewById(R.id.spinner_dual_conn);
-        spinnerCodec = findViewById(R.id.spinner_codec);
-        spinnerAntiWind = findViewById(R.id.spinner_anti_wind);
-
-        textStatus = findViewById(R.id.text_status);
-        textBattery = findViewById(R.id.text_battery);
-        textAncMode = findViewById(R.id.text_anc_mode);
-        btnRefreshStatus = findViewById(R.id.btn_refresh_status);
-
-        btnRefreshStatus.setOnClickListener(v -> refreshDeviceStatus());
-    }
-
-    private void setupSpinners() {
-        // 降噪模式
-        String[] ancModes = {"关闭", "通透", "普通", "深度", "实验", "抗风噪"};
-        setupSpinner(spinnerAnc, ancModes);
-
-        // 创建并保存降噪 Spinner 监听器
-        ancSpinnerListener = new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!isInitializing && !isSyncingFromDevice) {
-                    switch (position) {
-                        case 0: setAncOff(); break;
-                        case 1: setAncTransparency(); break;
-                        case 2: setAncNormal(); break;
-                        case 3: setAncDeep(); break;
-                        case 4: setAncExperimental(); break;
-                        case 5: setAncWind(); break;
-                    }
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        };
-        spinnerAnc.setOnItemSelectedListener(ancSpinnerListener);
-
-        // EQ 音效
-        String[] eqModes = {"悔恨之泪", "均衡中正", "欧美澎湃", "真律还原", "游戏优化"};
-        setupSpinner(spinnerEq, eqModes);
-        spinnerEq.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!isInitializing) {
-                    switch (position) {
-                        case 0: setEqBlue(); break;
-                        case 1: setEqBalanced(); break;
-                        case 2: setEqBass(); break;
-                        case 3: setEqPure(); break;
-                        case 4: setEqGame(); break;
-                    }
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-
-        // 游戏模式
-        String[] onOffOptions = {"关", "开"};
-        setupSpinner(spinnerGameMode, onOffOptions);
-        spinnerGameMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!isInitializing) {
-                    if (position == 0) setGameModeOff();
-                    else setGameModeOn();
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-
-        // 低延迟
-        setupSpinner(spinnerLowLatency, onOffOptions);
-        spinnerLowLatency.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!isInitializing) {
-                    if (position == 0) setLowLatencyOff();
-                    else setLowLatencyOn();
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-
-        // 双设备连接
-        setupSpinner(spinnerDualConn, onOffOptions);
-        spinnerDualConn.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!isInitializing) {
-                    if (position == 0) setDualConnOff();
-                    else setDualConnOn();
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-
-        // 音频编码
-        String[] codecOptions = {"AAC", "LHDC"};
-        setupSpinner(spinnerCodec, codecOptions);
-        spinnerCodec.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!isInitializing) {
-                    if (position == 0) setCodecAAC();
-                    else setCodecLHDC();
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-
-        // 抗风噪
-        setupSpinner(spinnerAntiWind, onOffOptions);
-        spinnerAntiWind.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!isInitializing) {
-                    if (position == 0) setAntiWindOff();
-                    else setAntiWindOn();
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-    }
-
-    private void setupSpinner(Spinner spinner, String[] options) {
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                R.layout.spinner_item, options);
-        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
-        spinner.setAdapter(adapter);
-    }
-
-    private void updateConnectionStatus(boolean connected) {
-        if (textStatus != null) {
-            if (connected) {
-                textStatus.setText("状态：✅ 已连接");
-                textStatus.setTextColor(getResources().getColor(R.color.status_connected));
-            } else {
-                textStatus.setText("状态：❌ 连接失败");
-                textStatus.setTextColor(getResources().getColor(R.color.status_disconnected));
-            }
-        }
-
-        // 根据连接状态启用或禁用控制 Spinner
-        enableControlSpinners(connected);
-    }
-
-    private void enableControlSpinners(boolean enabled) {
-        if (spinnerAnc != null) spinnerAnc.setEnabled(enabled);
-        if (spinnerEq != null) spinnerEq.setEnabled(enabled);
-        if (spinnerGameMode != null) spinnerGameMode.setEnabled(enabled);
-        if (spinnerLowLatency != null) spinnerLowLatency.setEnabled(enabled);
-        if (spinnerDualConn != null) spinnerDualConn.setEnabled(enabled);
-        if (spinnerCodec != null) spinnerCodec.setEnabled(enabled);
-        if (spinnerAntiWind != null) spinnerAntiWind.setEnabled(enabled);
+        // TODO 自动连接默认设备
     }
 
     // --- 权限处理 ---
@@ -301,34 +97,38 @@ public class MainActivity extends AppCompatActivity {
     // --- 查找已配对设备 ---
     private void listPairedDevices() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            return;
+            return; // 权限检查
         }
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
         pairedDevicesList.clear();
         pairedDeviceNames.clear();
 
-        if (!pairedDevices.isEmpty()) {
+        if (pairedDevices.size() > 0) {
             for (BluetoothDevice device : pairedDevices) {
                 pairedDevicesList.add(device);
                 pairedDeviceNames.add(device.getName());
             }
         }
 
-        if (spinnerDevices != null) {
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, pairedDeviceNames);
-            adapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
-            spinnerDevices.setAdapter(adapter);
-        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, pairedDeviceNames);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerDevices.setAdapter(adapter);
     }
 
-    // --- 连接设备 ---
+    // --- 连接逻辑 (已简化，全部委托给 Controller) ---
     public void connectDevice(View view) {
+        // MainActivity 不再处理连接细节，只负责触发
         new Thread(() -> {
             boolean isConnected = bluetoothController.connectDefaultDevice();
             runOnUiThread(() -> {
-                updateConnectionStatus(isConnected);
                 if (isConnected) {
+                    textStatus.setText("状态：已连接");
+                    textStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+
+                    // 连接成功后自动查询状态
                     refreshDeviceStatus();
+                } else {
+                    textStatus.setText("状态：连接失败");
                 }
             });
         }).start();
@@ -338,6 +138,9 @@ public class MainActivity extends AppCompatActivity {
     // ============ 状态管理 ===================
     // ==========================================
 
+    /**
+     * 设置状态监听器
+     */
     private void setupStateListener() {
         bluetoothController.setStateListener(new BluetoothController.StateListener() {
             @Override
@@ -352,76 +155,53 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 刷新设备状态（查询电量和ANC模式）
+     */
     private void refreshDeviceStatus() {
         if (!bluetoothController.isConnected()) {
             Toast.makeText(this, "设备未连接", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // 查询电量
         bluetoothController.queryBattery();
+
+        // 延迟100ms后查询ANC模式，避免指令冲突
         new android.os.Handler().postDelayed(() -> {
             bluetoothController.queryAncMode();
         }, 100);
     }
 
+    /**
+     * 更新电量显示
+     */
     private void updateBatteryUI(int left, int right) {
-        if (textBattery != null) {
-            if (left >= 0 && right >= 0) {
-                textBattery.setText("🔋 电量: 左 " + left + "% | 右 " + right + "%");
-                textBattery.setTextColor(getResources().getColor(R.color.text_primary));
-            } else {
-                textBattery.setText("🔋 电量: 未知");
-                textBattery.setTextColor(getResources().getColor(R.color.text_secondary));
-            }
-        }
-    }
-
-    private void updateAncModeUI(int mode) {
-        if (textAncMode != null) {
-            String modeName = bluetoothController.getAncModeName();
-            if (mode >= 0) {
-                textAncMode.setText("🎧 ANC模式: " + modeName);
-                textAncMode.setTextColor(getResources().getColor(R.color.text_primary));
-            } else {
-                textAncMode.setText("🎧 ANC模式: 未知");
-                textAncMode.setTextColor(getResources().getColor(R.color.text_secondary));
-            }
-        }
-
-        // 同步更新降噪模式 Spinner
-        if (spinnerAnc != null && mode >= 0) {
-            int position = ancModeToSpinnerPosition(mode);
-            if (position >= 0 && spinnerAnc.getSelectedItemPosition() != position) {
-                // 设置标志，防止触发命令发送
-                isSyncingFromDevice = true;
-                spinnerAnc.setSelection(position);
-                // 使用 Handler 延迟清除标志，确保所有事件处理完成
-                new android.os.Handler().postDelayed(() -> {
-                    isSyncingFromDevice = false;
-                }, 200);
-            }
+        if (left >= 0 && right >= 0) {
+            textBattery.setText("电量: 左 " + left + "% | 右 " + right + "%");
+            textBattery.setTextColor(getResources().getColor(android.R.color.black));
+        } else {
+            textBattery.setText("电量: 未知");
+            textBattery.setTextColor(getResources().getColor(android.R.color.darker_gray));
         }
     }
 
     /**
-     * 将 ANC 模式值转换为 Spinner 位置
-     * @param mode ANC模式值 (0x00, 0x01, 0x02, 0x03, 0x10, 0x11)
-     * @return Spinner位置 (0-5)，如果无法识别返回 -1
+     * 更新ANC模式显示
      */
-    private int ancModeToSpinnerPosition(int mode) {
-        switch (mode) {
-            case 0x00: return 0; // 关闭
-            case 0x01: return 1; // 通透
-            case 0x02: return 2; // 普通
-            case 0x03: return 3; // 深度
-            case 0x10: return 4; // 实验
-            case 0x11: return 5; // 抗风噪
-            default: return -1;
+    private void updateAncModeUI(int mode) {
+        String modeName = bluetoothController.getAncModeName();
+        if (mode >= 0) {
+            textAncMode.setText("ANC模式: " + modeName);
+            textAncMode.setTextColor(getResources().getColor(android.R.color.black));
+        } else {
+            textAncMode.setText("ANC模式: 未知");
+            textAncMode.setTextColor(getResources().getColor(android.R.color.darker_gray));
         }
     }
 
     // ==========================================
-    // ============ 功能指令区 ===================
+    // ============ 功能指令区 (调用 Controller) =======
     // ==========================================
 
     private void sendCommand(byte[] packet) {
@@ -429,89 +209,90 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "耳机未连接，请先连接", Toast.LENGTH_SHORT).show();
             return;
         }
-
         bluetoothController.sendRaw(packet);
         Toast.makeText(this, "指令已发送", Toast.LENGTH_SHORT).show();
     }
 
     // --- 降噪控制 ---
-    private void setAncOff() {
+    public void setAncOff(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00});
         sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
-    private void setAncTransparency() {
+    public void setAncTransparency(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x01, 0x00});
         sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
-    private void setAncNormal() {
+    public void setAncNormal(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x02, 0x00});
         sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
-    private void setAncDeep() {
+    public void setAncDeep(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00});
         sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
-    private void setAncExperimental() {
+    public void setAncExperimental(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x10, 0x00});
         sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
-    private void setAncWind() {
+    public void setAncWind(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x11, 0x00});
         sendCommand(new byte[]{(byte)0x4E, 0x03, 0x00, 0x00, 0x01, 0x01});
     }
 
     // --- EQ 控制 ---
-    private void setEqBlue() {
+    public void setEqBlue(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x00});
     }
-    private void setEqBalanced() {
+    public void setEqBalanced(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x01});
     }
-    private void setEqBass() {
+    public void setEqBass(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x02});
     }
-    private void setEqPure() {
+    public void setEqPure(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x03});
     }
-    private void setEqGame() {
+    public void setEqGame(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x07, 0x02, 0x04});
     }
 
     // --- 高级功能 ---
-    private void setGameModeOn() {
+    public void setGameModeOn(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x08, 0x02, 0x01});
     }
-    private void setGameModeOff() {
+    public void setGameModeOff(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x08, 0x02, 0x00});
     }
-    private void setLowLatencyOn() {
+    public void setLowLatencyOn(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x06, 0x02, 0x01});
     }
-    private void setLowLatencyOff() {
+    public void setLowLatencyOff(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x06, 0x02, 0x00});
     }
-    private void setDualConnOn() {
+    public void setDualConnOn(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x05, 0x02, 0x01});
     }
-    private void setDualConnOff() {
+    public void setDualConnOff(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x05, 0x02, 0x00});
     }
-    private void setCodecLHDC() {
+    public void setCodecLHDC(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x04, 0x02, 0x01});
     }
-    private void setCodecAAC() {
+    public void setCodecAAC(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x04, 0x02, 0x00});
     }
-    private void setAntiWindOn() {
+    public void setAntiWindOn(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, (byte)0xE1, 0x02, 0x01});
     }
-    private void setAntiWindOff() {
+    public void setAntiWindOff(View v) {
         sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, (byte)0xE1, 0x02, 0x00});
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // 当 App 退出时，可以选择断开连接
+        // 如果想让磁贴在后台也能用，可以把这行注释掉
         if (bluetoothController != null) {
             bluetoothController.close();
         }
