@@ -48,14 +48,14 @@ public class AncTile extends TileService implements BluetoothController.TileStat
 
                 // 如果已有缓存状态，立即更新 UI
                 mainHandler.post(() -> {
-                    int mode = controller.getAncMode();
-                    if (mode >= 0) {
+                    NiceHckProtocol.AncMode mode = controller.getAncMode();
+                    if (mode != NiceHckProtocol.AncMode.OFF) {
                         updateTileUI(mode);
                     }
                 });
             } else {
                 // 连接失败，显示未知状态
-                mainHandler.post(() -> updateTileUI(-1));
+                mainHandler.post(() -> updateTileUI(null));
             }
         }).start();
     }
@@ -72,33 +72,33 @@ public class AncTile extends TileService implements BluetoothController.TileStat
         if (!controller.isConnected()) {
             if (!controller.connectDefaultDevice()) {
                 Toast.makeText(this, "未连接耳机，请先确保耳机已配对", Toast.LENGTH_SHORT).show();
-                updateTileUI(-1);
+                updateTileUI(null);
                 return;
             }
         }
 
+        if (controller.getFirmwareSubVersion() ==  -1) {
+            controller.queryFirmwareVersion();
+        }
+
         // 获取当前模式
-        int currentMode = controller.getAncMode();
-        int nextMode;
+        NiceHckProtocol.AncMode currentMode = controller.getAncMode();
+        NiceHckProtocol.AncMode nextMode;
 
         // 循环切换：关闭(00) → 深度降噪(03) → 通透(01) → 关闭
         switch (currentMode) {
-            case 0x00: // 关闭 → 深度降噪
-                nextMode = 0x03;
-                controller.sendRaw(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x03, 0x00});
-                Toast.makeText(this, "ANC: 深度降噪", Toast.LENGTH_SHORT).show();
+            case OFF: // 关闭 → 深度降噪
+                nextMode = NiceHckProtocol.AncMode.DEEP;
                 break;
-            case 0x03: // 深度降噪 → 通透
-                nextMode = 0x01;
-                controller.sendRaw(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x01, 0x00});
-                Toast.makeText(this, "ANC: 通透模式", Toast.LENGTH_SHORT).show();
+            case DEEP: // 深度降噪 → 通透
+                nextMode = NiceHckProtocol.AncMode.TRANSPARENT;
                 break;
             default: // 其他状态 → 关闭
-                nextMode = 0x00;
-                controller.sendRaw(new byte[]{(byte)0x4E, 0x05, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00});
-                Toast.makeText(this, "ANC: 关闭", Toast.LENGTH_SHORT).show();
+                nextMode = NiceHckProtocol.AncMode.OFF;
                 break;
         }
+        controller.setAncMode(nextMode);
+        Toast.makeText(this, "ANC: " + nextMode.label, Toast.LENGTH_SHORT).show();
 
         // 发送查询指令确认状态（延迟200ms等待设备处理）
         mainHandler.postDelayed(() -> controller.queryAncMode(), 200);
@@ -108,7 +108,7 @@ public class AncTile extends TileService implements BluetoothController.TileStat
      * TileStateListener 回调 - 在后台线程调用
      */
     @Override
-    public void onAncModeChanged(int mode) {
+    public void onAncModeChanged(NiceHckProtocol.AncMode mode) {
         // 切换到主线程更新 UI
         mainHandler.post(() -> updateTileUI(mode));
     }
@@ -116,32 +116,32 @@ public class AncTile extends TileService implements BluetoothController.TileStat
     /**
      * 更新磁贴 UI（主线程）
      */
-    private void updateTileUI(int mode) {
+    private void updateTileUI(NiceHckProtocol.AncMode mode) {
         Tile tile = getQsTile();
         if (tile == null) return;
 
         switch (mode) {
-            case 0x00: // 关闭
+            case OFF: // 关闭
                 tile.setState(Tile.STATE_INACTIVE);
                 tile.setLabel("ANC: 关");
                 break;
-            case 0x01: // 通透
+            case TRANSPARENT: // 通透
                 tile.setState(Tile.STATE_ACTIVE);
                 tile.setLabel("ANC: 通透");
                 break;
-            case 0x02: // 普通降噪
+            case NORMAL: // 普通降噪
                 tile.setState(Tile.STATE_ACTIVE);
                 tile.setLabel("ANC: 普通");
                 break;
-            case 0x03: // 深度降噪
+            case DEEP: // 深度降噪
                 tile.setState(Tile.STATE_ACTIVE);
                 tile.setLabel("ANC: 深度");
                 break;
-            case 0x10: // 实验性降噪
+            case EXPERIMENT: // 实验性降噪
                 tile.setState(Tile.STATE_ACTIVE);
                 tile.setLabel("ANC: 实验");
                 break;
-            case 0x11: // 风噪抑制
+            case WIND_SUPPRESSION: // 风噪抑制
                 tile.setState(Tile.STATE_ACTIVE);
                 tile.setLabel("ANC: 抗风");
                 break;

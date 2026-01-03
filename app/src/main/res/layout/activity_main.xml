@@ -1,187 +1,382 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/backgroundColor">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp"
-        android:gravity="center_horizontal">
+        android:padding="16dp">
 
-        <!-- 连接区域 -->
+        <View
+            android:id="@+id/status_bar_spacer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
+
+        <!-- 顶部标题 -->
         <TextView
-            android:text="设备连接"
-            android:textSize="18sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NiceHCK 控制器"
+            android:textSize="24sp"
             android:textStyle="bold"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:textColor="@color/colorPrimary"
+            android:layout_marginBottom="16dp"/>
 
-        <Spinner
-            android:id="@+id/spinner_devices"
+        <!-- 1. 连接与状态卡片 -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"/>
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surfaceColor"
+            app:strokeColor="@color/strokeColor"
+            android:layout_marginBottom="16dp">
 
-        <Button
-            android:text="连接耳机"
-            android:onClick="connectDevice"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <TextView
-            android:id="@+id/text_status"
-            android:text="状态：未连接"
-            android:textColor="#FF0000"
-            android:layout_marginTop="8dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-        <!-- 设备状态显示 -->
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="12dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp"
-            android:background="#F0F0F0">
-
-            <TextView
-                android:id="@+id/text_battery"
-                android:text="电量: 查询中..."
-                android:textSize="16sp"
-                android:textColor="#333333"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-
-            <TextView
-                android:id="@+id/text_anc_mode"
-                android:text="ANC模式: 查询中..."
-                android:textSize="16sp"
-                android:textColor="#333333"
-                android:layout_marginTop="4dp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-
-            <Button
-                android:id="@+id/btn_refresh_status"
-                android:text="刷新状态"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:padding="8dp"/>
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        </LinearLayout>
+                <Spinner
+                    android:id="@+id/spinner_devices"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp" />
 
-        <!-- 降噪控制 -->
+                <com.google.android.material.button.MaterialButton
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="连接耳机"
+                    android:onClick="connectDevice"
+                    android:layout_marginTop="8dp"
+                    app:cornerRadius="8dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#EEEEEE"
+                    android:layout_marginVertical="12dp" />
+
+                <TextView android:id="@+id/text_status" android:text="状态：未连接" android:textStyle="bold" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                <TextView android:id="@+id/text_battery" android:text="🔋 电量: --" android:layout_marginTop="4dp" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                <com.google.android.material.button.MaterialButton
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:id="@+id/btn_refresh_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="刷新状态"
+                    app:icon="@android:drawable/stat_notify_sync" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 2. 降噪控制 -->
+        <!-- 降噪控制卡片 -->
         <TextView
-            android:text="降噪模式 (ANC)"
-            android:textSize="18sp"
+            android:text="降噪控制 (ANC)"
             android:textStyle="bold"
+            android:layout_marginBottom="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
-        <LinearLayout
-            android:orientation="horizontal"
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surfaceColor"
+            app:strokeColor="@color/strokeColor"
+            android:layout_marginBottom="16dp">
 
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:onClick="setAncOff"
-                android:text="关闭" />
-            <Button android:text="通透" android:onClick="setAncTransparency" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-            <Button android:text="降噪(普)" android:onClick="setAncNormal" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        </LinearLayout>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center">
-            <Button android:text="降噪(深)" android:onClick="setAncDeep" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-            <Button android:text="试验性" android:onClick="setAncExperimental" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-            <Button android:text="抗风噪" android:onClick="setAncWind" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        </LinearLayout>
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_anc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                app:chipSpacingHorizontal="8dp"
+                app:singleSelection="true"
+                app:selectionRequired="true"> <!-- 必须选一个 -->
 
-        <!-- EQ 控制 (修改：使用 GridLayout 替代 WrapLayout) -->
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_anc_off"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="关闭"
+                    android:onClick="setAncOff"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_anc_trans"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="通透"
+                    android:onClick="setAncTransparency"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_anc_normal"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="降噪(普)"
+                    android:onClick="setAncNormal"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_anc_deep"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="降噪(深)"
+                    android:onClick="setAncDeep"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_anc_exp"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="试验性"
+                    android:onClick="setAncExperimental"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_anc_wind"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="抗风噪"
+                    android:onClick="setAncWind"/>
+            </com.google.android.material.chip.ChipGroup>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 3. EQ 音效卡片 -->
         <TextView
             android:text="EQ 音效"
-            android:textSize="18sp"
             android:textStyle="bold"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
-        <GridLayout
-            android:columnCount="3"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surfaceColor"
+            app:strokeColor="@color/strokeColor">
 
-            <Button android:text="悔恨之泪" android:onClick="setEqBlue"/>
-            <Button android:text="均衡中正" android:onClick="setEqBalanced"/>
-            <Button android:text="欧美澎湃" android:onClick="setEqBass"/>
-            <Button android:text="真律还原" android:onClick="setEqPure"/>
-            <Button android:text="游戏优化" android:onClick="setEqGame"/>
-        </GridLayout>
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_eq"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                app:chipSpacingHorizontal="8dp"
+                app:singleSelection="true">
 
-        <!-- 高级功能 -->
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:id="@+id/chip_eq_blue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="悔恨之泪"
+                    android:onClick="setEqBlue" />
+
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:id="@+id/chip_eq_balanced"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="均衡中正"
+                    android:onClick="setEqBalanced" />
+
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:id="@+id/chip_eq_bass"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="欧美澎湃"
+                    android:onClick="setEqBass" />
+
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:id="@+id/chip_eq_pure"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="真律还原"
+                    android:onClick="setEqPure" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_eq_fine"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="细腻佳音"
+                    android:visibility="gone"
+                    android:onClick="setEqFine" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_eq_vocal"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="温婉人声"
+                    android:visibility="gone"
+                    android:onClick="setEqVocal" />
+
+                <com.google.android.material.chip.Chip
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:id="@+id/chip_eq_game"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="游戏优化"
+                    android:onClick="setEqGame" />
+            </com.google.android.material.chip.ChipGroup>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 4. 高级功能卡片 -->
         <TextView
             android:text="高级功能"
-            android:textSize="18sp"
             android:textStyle="bold"
             android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
-        <LinearLayout
-            android:orientation="horizontal"
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center">
-            <Button android:text="开启游戏模式" android:onClick="setGameModeOn" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-            <Button android:text="关闭游戏模式" android:onClick="setGameModeOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        </LinearLayout>
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="@color/surfaceColor"
+            app:strokeColor="@color/strokeColor"
+            android:layout_marginBottom="16dp">
 
-        <LinearLayout
-            android:orientation="horizontal"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- 游戏模式行 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:padding="8dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="游戏模式"
+                        android:textSize="16sp" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_game_mode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <!-- 低延迟行 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:padding="8dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="低延迟模式"
+                        android:textSize="16sp" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_low_latency"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <!-- 双设备连接行 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:padding="8dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="双设备连接"
+                        android:textSize="16sp" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_dual_conn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="2">
+
+                    <com.google.android.material.button.MaterialButton
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="编码: LHDC" android:onClick="setCodecLHDC" android:layout_columnWeight="1" android:layout_margin="4dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="编码: AAC" android:onClick="setCodecAAC" android:layout_columnWeight="1" android:layout_margin="4dp"/>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_codec_sbc"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
+                        android:text="编码: SBC" android:onClick="setCodecSBC" android:layout_columnWeight="1" android:layout_margin="4dp"/>
+                </GridLayout>
+
+                <com.google.android.material.divider.MaterialDivider
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginVertical="8dp" />
+
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:padding="8dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="风噪抑制"
+                        android:textSize="16sp" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_wind_suppression"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <!-- 之前提到的日志导出按钮放这里 -->
+        <com.google.android.material.button.MaterialButton
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:id="@+id/btn_export_log"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center">
-            <Button android:text="开启低延迟" android:onClick="setLowLatencyOn" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-            <Button android:text="关闭低延迟" android:onClick="setLowLatencyOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center">
-            <Button android:text="双设备: 开" android:onClick="setDualConnOn" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-            <Button android:text="双设备: 关" android:onClick="setDualConnOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center">
-            <Button android:text="编码: LHDC" android:onClick="setCodecLHDC" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-            <Button android:text="编码: AAC" android:onClick="setCodecAAC" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center">
-            <Button android:text="抗风噪开关: 开" android:onClick="setAntiWindOn" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-            <Button android:text="抗风噪开关: 关" android:onClick="setAntiWindOff" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-        </LinearLayout>
-
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="32dp"
+            android:text="导出调试日志"
+            app:strokeColor="@color/colorSecondary"
+            android:textColor="@color/colorSecondary"
+            app:icon="@android:drawable/ic_menu_share" />
     </LinearLayout>
 </ScrollView>

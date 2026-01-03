@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- 主色调：深青色 -->
+    <color name="colorPrimary">#00796B</color>
+    <color name="colorPrimaryContainer">#B2DFDB</color>
+
+    <!-- 辅助色：蓝灰色 -->
+    <color name="colorSecondary">#607D8B</color>
+    <color name="colorSecondaryContainer">#CFD8DC</color>
+
+    <!-- 背景与表面色 -->
+    <!-- res/values/colors.xml (亮色模式) -->
+    <color name="backgroundColor">#F8F9FA</color>
+    <color name="surfaceColor">#FFFFFF</color>
+    <color name="strokeColor">#DDDDDD</color>
+    <color name="textPrimary">#212121</color>
+
+    <!-- 状态文字颜色 -->
+    <color name="status_connected">#2E7D32</color>    <!-- 成功绿 -->
+    <color name="status_disconnected">#C62828</color> <!-- 错误红 -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
 </resources>
