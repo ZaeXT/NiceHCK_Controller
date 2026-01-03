@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
@@ -29,7 +28,6 @@ public class BluetoothController {
 
     // 这里的 UUID 必须是你之前确认有效的那个
     private static final UUID SPP_UUID = UUID.fromString("0000a100-1000-8000-4e48-434b4354524c");
-    private static final String TAG = "NiceHCK_Controller";
 
     private volatile int firmwareMainVersion = -1;
     private volatile int firmwareSubVersion = -1;
@@ -41,7 +39,7 @@ public class BluetoothController {
     private volatile int rightBatteryLevel = -1;
 
     private volatile int caseBatteryLevel = -1;
-    private volatile NiceHckProtocol.AncMode ancMode = NiceHckProtocol.AncMode.OFF;
+    private final NiceHckProtocol.AncMode ancMode = NiceHckProtocol.AncMode.OFF;
     // 状态监听器（用于 MainActivity 等 UI）
     public interface StateListener {
         void onBatteryChanged(int left, int right, int caseLevel);
@@ -50,6 +48,7 @@ public class BluetoothController {
         void onGameModeChanged(boolean enabled);
         void onLowLatencyChanged(boolean enabled);
         void onDualConnChanged(boolean enabled);
+        void onInEarDetectionChanged(boolean enabled);
         void onWindSuppressionChanged(boolean enabled);
     }
     private StateListener stateListener;
@@ -132,9 +131,7 @@ public class BluetoothController {
             inputStream = socket.getInputStream();
             startReceiving();
             XLog.d(">>> 连接成功！ <<<");
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                queryFirmwareVersion();
-            }, 200);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::queryFirmwareVersion, 200);
             return true;
         } catch (IOException e) {
             XLog.e("标准连接失败: " + e.getMessage());
@@ -368,6 +365,13 @@ public class BluetoothController {
                     stateListener.onDualConnChanged(dualEnabled);
                 }
                 break;
+            case 0x0109: // 入耳检测状态响应包
+                int inEarStatus = packet[6] & 0xFF;
+                boolean inEarEnabled = (inEarStatus == 0x01);
+                if (stateListener != null) {
+                    stateListener.onInEarDetectionChanged(inEarEnabled);
+                }
+                break;
             case 0x01E1: // 抗风噪状态响应包
                 int windSuppStatus = packet[6] & 0xFF;
                 boolean windSuppEnabled = (windSuppStatus == 0x01);
@@ -539,9 +543,7 @@ public class BluetoothController {
         XLog.i("设置ANC模式为: " + mode.label);
         sendNiceCommand(NiceHckProtocol.Op.ANC_SET, (byte)mode.value, (byte)0x00);
         syncStatus(NiceHckProtocol.Op.ANC_QUERY);
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            queryAncMode();
-        }, 100);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::queryAncMode, 100);
     }
 
     public void setEqMode(NiceHckProtocol.EqMode mode) {
@@ -603,6 +605,9 @@ public class BluetoothController {
     public void queryDualConnMode() {
         sendNiceCommand(NiceHckProtocol.Op.DUAL_CONN_QUERY);
     }
+    public void queryInEarDetectionMode() {
+        sendNiceCommand(NiceHckProtocol.Op.IN_EAR_QUERY);
+    }
     public void queryWindSuppressionMode() {
         sendNiceCommand(NiceHckProtocol.Op.WIND_SUPPRESSION_QUERY);
     }
@@ -636,9 +641,7 @@ public class BluetoothController {
     }
 
     private void syncStatus(int OpCode) {
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            sendNiceCommand(OpCode);
-        },100);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> sendNiceCommand(OpCode),100);
     }
 
     public void syncAllStatus() {
@@ -648,7 +651,7 @@ public class BluetoothController {
         }
         XLog.i("同步所有状态...");
         android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
-        handler.post(() -> queryFirmwareVersion());
+        handler.post(this::queryFirmwareVersion);
     }
 
     /**

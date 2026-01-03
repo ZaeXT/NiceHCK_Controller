@@ -60,7 +60,7 @@ public class NiceHckProtocol {
         GAME_MODE(Op.GAME_MODE_SET),
         LOW_LATENCY(Op.LOW_LATENCY_SET),
         DUAL_CONN(Op.DUAL_CONN_SET),
-        IN_EAR_DETECT(Op.IN_EAR_SET),
+        IN_EAR_DETECTION(Op.IN_EAR_SET),
         CODEC_LHDC(0x04), // For Firmware lower than 408
         WIND_SUPPRESSION(Op.WIND_SUPPRESSION_SET);
 

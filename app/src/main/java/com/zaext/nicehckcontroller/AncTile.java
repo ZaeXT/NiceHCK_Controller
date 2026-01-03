@@ -9,6 +9,8 @@ import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 
+import com.elvishew.xlog.XLog;
+
 @RequiresApi(api = Build.VERSION_CODES.N)
 public class AncTile extends TileService implements BluetoothController.TileStateListener {
 
@@ -39,7 +41,7 @@ public class AncTile extends TileService implements BluetoothController.TileStat
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                XLog.e("AncTile", "等待连接中断", e);
             }
 
             if (controller.isConnected()) {

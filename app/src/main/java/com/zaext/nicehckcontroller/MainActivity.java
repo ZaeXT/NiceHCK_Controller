@@ -15,8 +15,10 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -33,7 +35,6 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "NiceHCK_Control";
     private static final int PERMISSION_REQUEST_CODE = 101;
 
     private BluetoothAdapter bluetoothAdapter;
@@ -45,7 +46,6 @@ public class MainActivity extends AppCompatActivity {
     private View chipEqVocal;
     private View chipEqFine;
     private MaterialButton codecSBCButton;
-    private Button btnRefreshStatus;
 
     private final ArrayList<BluetoothDevice> pairedDevicesList = new ArrayList<>();
     private final ArrayList<String> pairedDeviceNames = new ArrayList<>();
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         spinnerDevices = findViewById(R.id.spinner_devices);
         textStatus = findViewById(R.id.text_status);
         textBattery = findViewById(R.id.text_battery);
-        btnRefreshStatus = findViewById(R.id.btn_refresh_status);
+        Button btnRefreshStatus = findViewById(R.id.btn_refresh_status);
         codecSBCButton = findViewById(R.id.btn_codec_sbc);
 
         findViewById(R.id.btn_export_log).setOnClickListener(v -> exportLog());
@@ -173,11 +173,11 @@ public class MainActivity extends AppCompatActivity {
         if (textStatus != null) {
             if (connected) {
                 textStatus.setText("状态：✅ 已连接");
-                textStatus.setTextColor(getResources().getColor(R.color.status_connected));
+                textStatus.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
                 XLog.i("Device connected");
             } else {
                 textStatus.setText("状态：❌ 连接失败");
-                textStatus.setTextColor(getResources().getColor(R.color.status_disconnected));
+                textStatus.setTextColor(ContextCompat.getColor(this, R.color.status_disconnected));
                 XLog.w("Device connection failed");
             }
         }
@@ -197,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -252,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
         MaterialSwitch switchLowLatency = findViewById(R.id.switch_low_latency);
         MaterialSwitch switchDualConn = findViewById(R.id.switch_dual_conn);
         MaterialSwitch switchWindSuppression = findViewById(R.id.switch_wind_suppression);
+        MaterialSwitch switchInEarDetection = findViewById(R.id.switch_in_ear_detection);
 
         switchGameMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (buttonView.isPressed()) {
@@ -277,6 +278,12 @@ public class MainActivity extends AppCompatActivity {
             if (buttonView.isPressed()) {
                 bluetoothController.setFeatureMode(NiceHckProtocol.Feature.WIND_SUPPRESSION, isChecked);
                 bluetoothController.queryWindSuppressionMode();
+            }
+        });
+        switchInEarDetection.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (buttonView.isPressed()) {
+                bluetoothController.setFeatureMode(NiceHckProtocol.Feature.IN_EAR_DETECTION, isChecked);
+                bluetoothController.queryInEarDetectionMode();
             }
         });
     }
@@ -314,6 +321,11 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onInEarDetectionChanged(boolean enabled) {
+                runOnUiThread(() -> updateInEarDetectionUI(enabled));
+            }
+
+            @Override
             public void onWindSuppressionChanged(boolean enabled) {
                 runOnUiThread(() -> updateWindSuppressionUI(enabled));
             }
@@ -328,24 +340,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         bluetoothController.queryBattery();
-        new android.os.Handler().postDelayed(() -> {
-            bluetoothController.queryAncMode();
-        }, 100);
-        new android.os.Handler().postDelayed(() -> {
-            bluetoothController.queryEqMode();
-        }, 200);
-        new android.os.Handler().postDelayed(() -> {
-            bluetoothController.queryGameMode();
-        }, 300);
-        new android.os.Handler().postDelayed(() -> {
-            bluetoothController.queryLowLatencyMode();
-        }, 400);
-        new android.os.Handler().postDelayed(() -> {
-            bluetoothController.queryDualConnMode();
-        }, 500);
-        new android.os.Handler().postDelayed(() -> {
-            bluetoothController.queryWindSuppressionMode();
-        }, 600);
+        new android.os.Handler().postDelayed(bluetoothController::queryAncMode, 100);
+        new android.os.Handler().postDelayed(bluetoothController::queryEqMode, 200);
+        new android.os.Handler().postDelayed(bluetoothController::queryGameMode, 300);
+        new android.os.Handler().postDelayed(bluetoothController::queryLowLatencyMode, 400);
+        new android.os.Handler().postDelayed(bluetoothController::queryDualConnMode, 500);
+        new android.os.Handler().postDelayed(bluetoothController::queryInEarDetectionMode, 600);
+        new android.os.Handler().postDelayed(bluetoothController::queryWindSuppressionMode, 700);
     }
 
     private void updateBatteryUI(int left, int right, int caseLevel) {
@@ -408,6 +409,11 @@ public class MainActivity extends AppCompatActivity {
         switchDualConn.setChecked(enabled);
     }
 
+    private void updateInEarDetectionUI(boolean enabled) {
+        MaterialSwitch switchInEarDetection = findViewById(R.id.switch_in_ear_detection);
+        switchInEarDetection.setChecked(enabled);
+    }
+
     private void updateWindSuppressionUI(boolean enabled) {
         MaterialSwitch switchWindSuppression = findViewById(R.id.switch_wind_suppression);
         switchWindSuppression.setChecked(enabled);
@@ -418,25 +424,25 @@ public class MainActivity extends AppCompatActivity {
     // ============ 功能指令区 ===================
     // ==========================================
 
-    private void sendCommand(byte[] packet) {
-        if (!bluetoothController.isConnected()) {
-            com.google.android.material.snackbar.Snackbar.make(findViewById(android.R.id.content),
-                    "耳机未连接", com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
-            XLog.w("Cannot send command: device not connected");
-            return;
-        }
-        XLog.d("Sent command: " + bytesToHex(packet));
-        bluetoothController.sendRaw(packet);
-        Toast.makeText(this, "指令已发送", Toast.LENGTH_SHORT).show();
-    }
-
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02X ", b));
-        }
-        return sb.toString().trim();
-    }
+//    private void sendCommand(byte[] packet) {
+//        if (!bluetoothController.isConnected()) {
+//            com.google.android.material.snackbar.Snackbar.make(findViewById(android.R.id.content),
+//                    "耳机未连接", com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
+//            XLog.w("Cannot send command: device not connected");
+//            return;
+//        }
+//        XLog.d("Sent command: " + bytesToHex(packet));
+//        bluetoothController.sendRaw(packet);
+//        Toast.makeText(this, "指令已发送", Toast.LENGTH_SHORT).show();
+//    }
+//
+//    private String bytesToHex(byte[] bytes) {
+//        StringBuilder sb = new StringBuilder();
+//        for (byte b : bytes) {
+//            sb.append(String.format("%02X ", b));
+//        }
+//        return sb.toString().trim();
+//    }
 
     // --- 降噪控制 ---
     public void setAncOff(View v) {
@@ -499,31 +505,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --- 高级功能 ---
-    public void setGameModeOn(View v) {
-//        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x08, 0x02, 0x01});
-        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.GAME_MODE, true);
-    }
-    public void setGameModeOff(View v) {
-//        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x08, 0x02, 0x00});
-        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.GAME_MODE, false);
-    }
-    public void setLowLatencyOn(View v) {
-//        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x06, 0x02, 0x01});
-        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.LOW_LATENCY, true);
-    }
-    public void setLowLatencyOff(View v) {
-//        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x06, 0x02, 0x00});
-        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.LOW_LATENCY, false);
-
-    }
-    public void setDualConnOn(View v) {
-//        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x05, 0x02, 0x01});
-        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.DUAL_CONN, true);
-    }
-    public void setDualConnOff(View v) {
-//        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x05, 0x02, 0x00});
-        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.DUAL_CONN, false);
-    }
+//    public void setGameModeOn(View v) {
+////        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x08, 0x02, 0x01});
+//        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.GAME_MODE, true);
+//    }
+//    public void setGameModeOff(View v) {
+////        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x08, 0x02, 0x00});
+//        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.GAME_MODE, false);
+//    }
+//    public void setLowLatencyOn(View v) {
+////        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x06, 0x02, 0x01});
+//        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.LOW_LATENCY, true);
+//    }
+//    public void setLowLatencyOff(View v) {
+////        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x06, 0x02, 0x00});
+//        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.LOW_LATENCY, false);
+//
+//    }
+//    public void setDualConnOn(View v) {
+////        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x05, 0x02, 0x01});
+//        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.DUAL_CONN, true);
+//    }
+//    public void setDualConnOff(View v) {
+////        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x05, 0x02, 0x00});
+//        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.DUAL_CONN, false);
+//    }
     public void setCodecLHDC(View v) {
 //        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, 0x04, 0x02, 0x01});
         if (bluetoothController.getFirmwareSubVersion() >= 8) {
@@ -543,14 +549,14 @@ public class MainActivity extends AppCompatActivity {
     public void setCodecSBC(View v) {
         bluetoothController.setCodec(NiceHckProtocol.Codec.SBC);
     }
-    public void setAntiWindOn(View v) {
-//        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, (byte)0xE1, 0x02, 0x01});
-        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.WIND_SUPPRESSION, true);
-    }
-    public void setAntiWindOff(View v) {
-//        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, (byte)0xE1, 0x02, 0x00});
-        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.WIND_SUPPRESSION, false);
-    }
+//    public void setAntiWindOn(View v) {
+////        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, (byte)0xE1, 0x02, 0x01});
+//        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.WIND_SUPPRESSION, true);
+//    }
+//    public void setAntiWindOff(View v) {
+////        sendCommand(new byte[]{(byte)0x4E, 0x04, 0x00, 0x00, (byte)0xE1, 0x02, 0x00});
+//        bluetoothController.setFeatureMode(NiceHckProtocol.Feature.WIND_SUPPRESSION, false);
+//    }
 
     @Override
     protected void onDestroy() {
