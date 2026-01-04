@@ -39,7 +39,7 @@ public class BluetoothController {
     private volatile int rightBatteryLevel = -1;
 
     private volatile int caseBatteryLevel = -1;
-    private final NiceHckProtocol.AncMode ancMode = NiceHckProtocol.AncMode.OFF;
+    private NiceHckProtocol.AncMode ancMode = NiceHckProtocol.AncMode.OFF;
     // 状态监听器（用于 MainActivity 等 UI）
     public interface StateListener {
         void onBatteryChanged(int left, int right, int caseLevel);
@@ -322,12 +322,12 @@ public class BluetoothController {
                 break;
             case 0x0101: //  ANC模式数据包
                 int modeValue = packet[6] & 0xFF;
-                NiceHckProtocol.AncMode mode = NiceHckProtocol.AncMode.fromValue(modeValue);
-                XLog.i("ANC模式更新: " + mode.label + " (0x" + String.format("%02X", mode.value) + ")");
+                ancMode = NiceHckProtocol.AncMode.fromValue(modeValue);
+                XLog.i("ANC模式更新: " + ancMode.label + " (0x" + String.format("%02X", ancMode.value) + ")");
                 if (stateListener != null) {
-                    stateListener.onAncModeChanged(mode);
+                    stateListener.onAncModeChanged(ancMode);
                 }
-                notifyTileListeners(mode);
+                notifyTileListeners(ancMode);
                 break;
             case 0x0003: //    固件版本数据包
                 this.firmwareSubVersion = packet[6] & 0xFF;

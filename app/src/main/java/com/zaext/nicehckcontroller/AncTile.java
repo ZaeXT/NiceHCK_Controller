@@ -95,6 +95,10 @@ public class AncTile extends TileService implements BluetoothController.TileStat
             case DEEP: // 深度降噪 → 通透
                 nextMode = NiceHckProtocol.AncMode.TRANSPARENT;
                 break;
+            case TRANSPARENT:
+                // 通透 → 关闭
+                nextMode = NiceHckProtocol.AncMode.OFF;
+                break;
             default: // 其他状态 → 关闭
                 nextMode = NiceHckProtocol.AncMode.OFF;
                 break;
