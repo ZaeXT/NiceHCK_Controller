@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
@@ -89,10 +90,11 @@ public class BluetoothController {
             XLog.e("错误：Context 为空，无法检查权限");
             return false;
         }
-
-        if (ActivityCompat.checkSelfPermission(appContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            XLog.e("错误：缺少 BLUETOOTH_CONNECT 权限");
-            return false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ActivityCompat.checkSelfPermission(appContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                XLog.e("错误：缺少 BLUETOOTH_CONNECT 权限");
+                return false;
+            }
         }
 
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
